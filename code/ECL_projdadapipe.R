@@ -60,14 +60,12 @@ sum(seqtab.nochim)/sum(seqtab)
 head(seqtab.nochim)
 
 #Trying to write the sequences without chimeras to a text file to import into mafft or fast tree2 to
-#isualize the phylogenies without prior taxonomy assignments
-#so this doesn't work,, there's a couple reasons but mainly the format of the seqtab.nochim data isn't suitable/ agreeable to
-#the required form for the write.fasta function
-
+#visualize the phylogenies without prior taxonomy assignments
+library(tidyverse)
 library(seqinr)
 names <- seq(from = 0, to = length(seqtab.nochim))
-sequences <-write.table(seqtab.nochim, file = "seqtab_nochim1.txt", sep = '\t')
-write.fasta(sequences = sequences, names = names, "seqtab_nochim.txt", open = "w", as.string = FALSE)
+seqs<-colnames(seqtab.nochim)
+write.fasta(as.list(colnames(seqtab.nochim)), names = names, "seqtab_nochim.txt", open = "w", as.string = FALSE)
 
 
        
