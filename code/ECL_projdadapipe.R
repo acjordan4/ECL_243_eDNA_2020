@@ -1,6 +1,7 @@
 #ECL 243 project pipeline
 library(dada2)
 path <- "C:/Users/MariyK/Desktop/ECL243/Samples"
+#path <- "C:/Users/Awnna/Desktop/ECL243/Samples"
 list.files(path)
 
 #read in the names of the fastq files and list into vector
@@ -61,11 +62,29 @@ head(seqtab.nochim)
 
 #Trying to write the sequences without chimeras to a text file to import into mafft or fast tree2 to
 #visualize the phylogenies without prior taxonomy assignments
+#Writing fasta file to feed into MSA for allignment, and APE for phylogenies
 library(tidyverse)
 library(seqinr)
 names <- seq(from = 0, to = length(seqtab.nochim))
 seqs<-colnames(seqtab.nochim)
 write.fasta(as.list(colnames(seqtab.nochim)), names = names, "seqtab_nochim.txt", open = "w", as.string = FALSE)
+
+#Allign Sequences
+library(msa)
+seqs.fasta <- readDNAStringSet("seqtab_nochim.txt")
+
+start_time <- Sys.time()
+seqs.alligned <- msa(seqs.fasta, method="ClustalOmega")
+end_time <- Sys.time()
+end_time - start_time
+seqs.alligned
+
+#Building the phyolgenetic tree 
+library(ape)
+library(phangorn)
+library(seqinr)
+
+frogs_phyDat<- msaConvert(seqs.alligned, type= "phangorn::phyDat")
 
 
        
@@ -73,7 +92,7 @@ write.fasta(as.list(colnames(seqtab.nochim)), names = names, "seqtab_nochim.txt"
 getN <- function(x) sum(getUniques(x))
 track <- cbind(output, sapply(dadaFs, getN), sapply(dadaRs,getN), sapply(mergers, getN), rowSums(seqtab.nochim))
 colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nochim")
-ronames(track) <- sample.names
+rownames(track) <- sample.names
 head(track)
 
 #Assign Taxonomy
