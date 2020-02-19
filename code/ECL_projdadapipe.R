@@ -60,8 +60,6 @@ sum(seqtab.nochim)/sum(seqtab)
 
 head(seqtab.nochim)
 
-#Trying to write the sequences without chimeras to a text file to import into mafft or fast tree2 to
-#visualize the phylogenies without prior taxonomy assignments
 #Writing fasta file to feed into MSA for allignment, and APE for phylogenies
 library(tidyverse)
 library(seqinr)
@@ -69,15 +67,15 @@ names <- seq(from = 0, to = length(seqtab.nochim))
 seqs<-colnames(seqtab.nochim)
 write.fasta(as.list(colnames(seqtab.nochim)), names = names, "seqtab_nochim.txt", open = "w", as.string = FALSE)
 
-#Allign Sequences
+#Align Sequences
 library(msa)
 seqs.fasta <- readDNAStringSet("seqtab_nochim.txt")
 
 start_time <- Sys.time()
-seqs.alligned <- msa(seqs.fasta, method="ClustalOmega")
+seqs.aligned <- msa(seqs.fasta, method="ClustalOmega")
 end_time <- Sys.time()
 end_time - start_time
-seqs.alligned
+seqs.aligned
 
 #Building the phyolgenetic tree 
 library(ape)
@@ -102,11 +100,6 @@ taxa <- addSpecies(taxa, "C:/Users/MariyK/Desktop/ECL243/Samples/silva_species_a
 taxa.print <- taxa
 rownames(taxa.print)
 head(taxa.print)
-
-#can check the accuracy of the assignment with additional code
-#code not listed here butcan be found on dada2 documentation
-#would also need the sample data to run this accuracy check
-
 
 #Phyloseq statistical analysis and data visualization
 library(phyloseq)
