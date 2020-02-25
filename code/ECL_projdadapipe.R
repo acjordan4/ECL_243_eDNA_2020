@@ -77,6 +77,9 @@ end_time <- Sys.time()
 end_time - start_time
 seqs.aligned
 
+frogs_fasta <- msaConvert(seqs.alligned, type="bio3d::fasta")
+write.fasta(alignment=frogs_fasta, file="alignedseqs.fasta")
+
 #Building the phyolgenetic tree 
 library(ape)
 library(phangorn)
@@ -92,6 +95,7 @@ track <- cbind(output, sapply(dadaFs, getN), sapply(dadaRs,getN), sapply(mergers
 colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nochim")
 rownames(track) <- sample.names
 head(track)
+write.csv(track, "output/track_reads_pipeline.csv")
 
 #Assign Taxonomy
 taxa <- assignTaxonomy(seqtab.nochim, "C:/Users/MariyK/Desktop/ECL243/Samples/silva_nr_v132_train_set.fa.gz")
