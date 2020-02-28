@@ -1,7 +1,6 @@
 #ECL 243 project pipeline
 library(dada2)
 path <- "C:/Users/MariyK/Desktop/ECL243/Samples"
-#path <- "C:/Users/Awnna/Desktop/ECL243/Samples"
 list.files(path)
 
 #read in the names of the fastq files and list into vector
@@ -12,11 +11,12 @@ fnRs <- sort(list.files(path, pattern="_R2_001.fastq", full.names = TRUE))
 sample.names <- sapply(strsplit(basename(fnFs), "_"), '[',1)
 sample.names
 
-#inspect read quality of forward reads
+
+#inspect read quality of forward and reverse reads
 plotQualityProfile(fnFs[1:2])
 plotQualityProfile(fnRs[1:2])
 
-#filter and trim the reads
+#filter and trim the reads. trimming down to 200bp
 filtFs <- file.path(path, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
 filtRs <- file.path(path, "filtered", paste0(sample.names, "_R_filt.fastq.gz"))
 names(filtFs) <- sample.names
@@ -47,6 +47,7 @@ mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose = TRUE)
 head(mergers[[1]])
 
 #construct sequence table
+#this sequence table lists each sequence as a column name and then the sample number is the row number
 seqtab <- makeSequenceTable(mergers)
 dim(seqtab)
 
@@ -60,42 +61,13 @@ sum(seqtab.nochim)/sum(seqtab)
 
 head(seqtab.nochim)
 
-#Writing fasta file to feed into MSA for allignment, and APE for phylogenies
-library(tidyverse)
-library(seqinr)
-names <- seq(from = 0, to = length(seqtab.nochim))
-seqs<-colnames(seqtab.nochim)
-write.fasta(as.list(colnames(seqtab.nochim)), names = names, "seqtab_nochim.txt", open = "w", as.string = FALSE)
 
-#Align Sequences
-library(msa)
-seqs.fasta <- readDNAStringSet("seqtab_nochim.txt")
-
-start_time <- Sys.time()
-seqs.aligned <- msa(seqs.fasta, method="ClustalOmega")
-end_time <- Sys.time()
-end_time - start_time
-seqs.aligned
-
-frogs_fasta <- msaConvert(seqs.alligned, type="bio3d::fasta")
-write.fasta(alignment=frogs_fasta, file="alignedseqs.fasta")
-
-#Building the phyolgenetic tree 
-library(ape)
-library(phangorn)
-library(seqinr)
-
-frogs_phyDat<- msaConvert(seqs.alligned, type= "phangorn::phyDat")
-
-
-       
 #track reads through the pipeline
 getN <- function(x) sum(getUniques(x))
 track <- cbind(output, sapply(dadaFs, getN), sapply(dadaRs,getN), sapply(mergers, getN), rowSums(seqtab.nochim))
 colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nochim")
-rownames(track) <- sample.names
+ronames(track) <- sample.names
 head(track)
-write.csv(track, "output/track_reads_pipeline.csv")
 
 #Assign Taxonomy
 taxa <- assignTaxonomy(seqtab.nochim, "C:/Users/MariyK/Desktop/ECL243/Samples/silva_nr_v132_train_set.fa.gz")
@@ -105,18 +77,68 @@ taxa.print <- taxa
 rownames(taxa.print)
 head(taxa.print)
 
+#writing fasta file to feed into MSA for alignment
+library(tidyverse)
+library(seqinr)
+
+#old code where names are a sequence of numbers
+#names <- seq(from = 0, to = length(seqtab.nochim))
+#seqs<-colnames(seqtab.nochim)
+#write.fasta(as.list(colnames(seqtab.nochim)), names = names, "seqtab_nochim.txt", open = "w", as.string = FALSE)
+write.fasta(as.list(rownames(taxa)), names = taxa.print, "taxa.txt", open = "w", as.string = FALSE)
+
+#Align Sequences
+library(msa)
+seqs.fasta <- readDNAStringSet("taxa.txt")
+start_time <- Sys.time()
+seqs.aligned <- msa(seqs.fasta, method="ClustalOmega")
+end_time <- Sys.time()
+end_time - start_time
+seqs.aligned
+
+#for this metadata function, I removed the other info in the readme file. will add to the github repository
+metadata <- read.delim('C:/Users/MariyK/Desktop/ECL243/README_for_amphibian_skin_microbiome1.txt', sep = "\t", col.names=c("sampleIDs","species","life_stage","site","year","bd_test"), row.names = NULL)
+dim(metadata)
+metadata$sampleIDs
+
 #Phyloseq statistical analysis and data visualization
 library(phyloseq)
 library(Biostrings)
 library(ggplot2)
 
-#to make the phyloseq table, need to look at example data in the dada2 tutorial
 theme_set(theme_bw())
 samples.out <- rownames(seqtab.nochim)
-frog <- sapply(strsplit(samples.out, "D"), '[' , 1)
+frog <- metadata
+species < - metadata[2]
+lifestage <- metadata[3]
+bd_test <- metadata[6]
+samdf <- data.frame(Frog = frog, Species = species, lifestage = lifestage, bd_test = bd_test)
+rownames(samdf) <- samples.out
 
-#This one doesn't work right now but should be inline with the rest of the code above
-bact <- substr(subject, 1,1)
+ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
+               sample_data(samdf), 
+               tax_table(taxa))
 
+dna <- Biostrings::DNAStringSet(taxa_names(ps))
+names(dna) <- taxa_names(ps)
+ps <- merge_phyloseq(ps, dna) #add phylo tree here merge_phyloseq(ps,dna,tree)
+taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
+ps
 
+plot_bar(ps, fill = "Family")
 
+plot_richness(ps, x="bd_test", measures=c("Shannon", "Simpson"), color="Species")
+
+# Transform data to proportions as appropriate for Bray-Curtis distances
+ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
+ord.nmds.bray <- ordinate(ps.prop, method="NMDS", distance="bray")
+
+plot_ordination(ps.prop, ord.nmds.bray, color="Species", title="Bray NMDS")
+
+top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:20]
+ps.top20 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
+ps.top20 <- prune_taxa(top20, ps.top20)
+plot_bar(ps.top20, x="Species:bd_test", fill="Family")
+
+#heatmap function for abundance of each organism by phylum from https://joey711.github.io/phyloseq/import-data.html
+#plot_heatmap(ps, taxa.label="Phylum")
