@@ -1,6 +1,6 @@
 #ECL 243 project pipeline
 library(dada2)
-path <- "C:/Users/MariyK/Desktop/ECL243/Samples"
+path <- "~ECL243/Samples"
 list.files(path)
 
 #read in the names of the fastq files and list into vector
@@ -70,8 +70,8 @@ ronames(track) <- sample.names
 head(track)
 
 #Assign Taxonomy
-taxa <- assignTaxonomy(seqtab.nochim, "C:/Users/MariyK/Desktop/ECL243/Samples/silva_nr_v132_train_set.fa.gz")
-taxa <- addSpecies(taxa, "C:/Users/MariyK/Desktop/ECL243/Samples/silva_species_assignment_v132.fa.gz")
+taxa <- assignTaxonomy(seqtab.nochim, "~/ECL243/Samples/silva_nr_v132_train_set.fa.gz")
+taxa <- addSpecies(taxa, "~/ECL243/Samples/silva_species_assignment_v132.fa.gz")
 #and inspect
 taxa.print <- taxa
 rownames(taxa.print)
@@ -97,7 +97,7 @@ end_time - start_time
 seqs.aligned
 
 #for this metadata function, I removed the other info in the readme file. will add to the github repository
-metadata <- read.delim('C:/Users/MariyK/Desktop/ECL243/README_for_amphibian_skin_microbiome1.txt', sep = "\t", col.names=c("sampleIDs","species","life_stage","site","year","bd_test"), row.names = NULL)
+metadata <- read.delim('~/ECL243/README_for_amphibian_skin_microbiome1.txt', sep = "\t", col.names=c("sampleIDs","species","life_stage","site","year","bd_test"), row.names = NULL)
 dim(metadata)
 metadata$sampleIDs
 
