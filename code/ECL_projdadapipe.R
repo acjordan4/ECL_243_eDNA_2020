@@ -1,6 +1,7 @@
 #ECL 243 project pipeline
 library(dada2)
 path <- "C:/Users/MariyK/Desktop/ECL243/Samples"
+#path <- "C:/Users/Awnna/Desktop/ECL243/Samples/"
 list.files(path)
 
 #read in the names of the fastq files and list into vector
@@ -45,6 +46,8 @@ dadaFs[[1]]
 #if most of your reads do not merge, then change truncation requirements
 mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose = TRUE)
 head(mergers[[1]])
+mergers.check <- mergers[[1]]
+write.csv(mergers.check, "output/checks.merges.csv")
 
 #construct sequence table
 #this sequence table lists each sequence as a column name and then the sample number is the row number
@@ -52,7 +55,8 @@ seqtab <- makeSequenceTable(mergers)
 dim(seqtab)
 
 #look at the distribution of sequence lengths
-table(nchar(getSequences(seqtab)))
+seq.lengths <- table(nchar(getSequences(seqtab)))
+write.csv(seq.lengths, "output/distribution_sequence_lengths.csv")
 
 #remove chimeras
 seqtab.nochim <- removeBimeraDenovo(seqtab, method = "consensus", multithread = FALSE, verbose = TRUE)
@@ -66,12 +70,16 @@ head(seqtab.nochim)
 getN <- function(x) sum(getUniques(x))
 track <- cbind(output, sapply(dadaFs, getN), sapply(dadaRs,getN), sapply(mergers, getN), rowSums(seqtab.nochim))
 colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nochim")
-ronames(track) <- sample.names
+rownames(track) <- sample.names
 head(track)
+write.csv(track, "output/track_reads_pipeline.csv")
 
 #Assign Taxonomy
-taxa <- assignTaxonomy(seqtab.nochim, "C:/Users/MariyK/Desktop/ECL243/Samples/silva_nr_v132_train_set.fa.gz")
-taxa <- addSpecies(taxa, "C:/Users/MariyK/Desktop/ECL243/Samples/silva_species_assignment_v132.fa.gz")
+#taxa <- assignTaxonomy(seqtab.nochim, "C:/Users/Awnna/Desktop/ECL243/Samples/silva_nr_v132_train_set.fa")
+#taxa <- addSpecies(taxa, "C:/Users/Awnna/Desktop/ECL243/Samples/silva_species_assignment_v132.fa")
+taxa.gg <- assignTaxonomy(seqtab.nochim, "C:/Users/Awnna/Desktop/ECL243/Samples/rdp_train_set_14.fa.gz")
+taxa.gg <- addSpecies(taxa.gg, "C:/Users/Awnna/Desktop/ECL243/Samples/rdp_species_assignment_14.fa.gz")
+
 #and inspect
 taxa.print <- taxa
 rownames(taxa.print)
@@ -85,7 +93,8 @@ library(seqinr)
 #names <- seq(from = 0, to = length(seqtab.nochim))
 #seqs<-colnames(seqtab.nochim)
 #write.fasta(as.list(colnames(seqtab.nochim)), names = names, "seqtab_nochim.txt", open = "w", as.string = FALSE)
-write.fasta(as.list(rownames(taxa)), names = taxa.print, "taxa.txt", open = "w", as.string = FALSE)
+#write.fasta(as.list(rownames(taxa)), names = taxa.print, "taxa.txt", open = "w", as.string = FALSE)
+write.fasta(as.list(rownames(taxa.gg)), names = taxa.print, "taxa_gg.txt", open = "w", as.string = FALSE)
 
 #Align Sequences
 library(msa)
@@ -95,9 +104,11 @@ seqs.aligned <- msa(seqs.fasta, method="ClustalOmega")
 end_time <- Sys.time()
 end_time - start_time
 seqs.aligned
+writeXStringSet(unmasked(seqs.aligned), file="seqs_aligned.fasta")
 
 #for this metadata function, I removed the other info in the readme file. will add to the github repository
-metadata <- read.delim('C:/Users/MariyK/Desktop/ECL243/README_for_amphibian_skin_microbiome1.txt', sep = "\t", col.names=c("sampleIDs","species","life_stage","site","year","bd_test"), row.names = NULL)
+#metadata <- read.delim('C:/Users/MariyK/Desktop/ECL243/README_for_amphibian_skin_microbiome1.txt', sep = "\t", col.names=c("sampleIDs","species","life_stage","site","year","bd_test"), row.names = NULL)
+metadata <- read.delim('code/README_for_amphibian_skin_microbiome1.txt', sep = "\t", col.names=c("sampleIDs","species","life_stage","site","year","bd_test"), row.names = NULL)
 dim(metadata)
 metadata$sampleIDs
 
@@ -108,11 +119,11 @@ library(ggplot2)
 
 theme_set(theme_bw())
 samples.out <- rownames(seqtab.nochim)
-frog <- metadata
-species < - metadata[2]
-lifestage <- metadata[3]
-bd_test <- metadata[6]
-samdf <- data.frame(Frog = frog, Species = species, lifestage = lifestage, bd_test = bd_test)
+frog <- metadata$sampleIDs
+species <- metadata$species
+lifestage <- metadata$life_stage
+bd_test <- metadata$bd_test
+samdf <- data.frame(Frog = frog, frogspecies = species, lifestage = lifestage, bd_test = bd_test)
 rownames(samdf) <- samples.out
 
 ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
@@ -125,7 +136,9 @@ ps <- merge_phyloseq(ps, dna) #add phylo tree here merge_phyloseq(ps,dna,tree)
 taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
 ps
 
-plot_bar(ps, fill = "Family")
+pdf("samples_families.pdf")
+plot_bar(ps, fill = "Phylum")
+dev.off()
 
 plot_richness(ps, x="bd_test", measures=c("Shannon", "Simpson"), color="Species")
 
