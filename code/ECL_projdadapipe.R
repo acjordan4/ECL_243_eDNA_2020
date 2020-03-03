@@ -1,6 +1,6 @@
 #ECL 243 project pipeline
 library(dada2)
-path <- "C:/Users/MariyK/Desktop/ECL243/Samples"
+path <- "~/Desktop/ECL243/Samples"
 #path <- "C:/Users/Awnna/Desktop/ECL243/Samples/"
 list.files(path)
 
@@ -100,11 +100,11 @@ library(seqinr)
 #seqs<-colnames(seqtab.nochim)
 #write.fasta(as.list(colnames(seqtab.nochim)), names = names, "seqtab_nochim.txt", open = "w", as.string = FALSE)
 #write.fasta(as.list(rownames(taxa)), names = taxa.print, "taxa.txt", open = "w", as.string = FALSE)
-write.fasta(as.list(rownames(taxa.gg)), names = taxa.print, "taxa_gg.txt", open = "w", as.string = FALSE)
+write.fasta(as.list(rownames(taxa.gg)), names = names$name, "taxa_gg.txt", open = "w", as.string = FALSE)
 
 #Align Sequences
 library(msa)
-seqs.fasta <- readDNAStringSet("taxa.txt")
+seqs.fasta <- readDNAStringSet("taxa_gg.txt")
 start_time <- Sys.time()
 seqs.aligned <- msa(seqs.fasta, method="ClustalOmega")
 end_time <- Sys.time()
@@ -113,7 +113,7 @@ seqs.aligned
 writeXStringSet(unmasked(seqs.aligned), file="seqs_aligned.fasta")
 
 #for this metadata function, I removed the other info in the readme file. will add to the github repository
-#metadata <- read.delim('C:/Users/MariyK/Desktop/ECL243/README_for_amphibian_skin_microbiome1.txt', sep = "\t", col.names=c("sampleIDs","species","life_stage","site","year","bd_test"), row.names = NULL)
+#metadata <- read.delim('~/ECL243/README_for_amphibian_skin_microbiome1.txt', sep = "\t", col.names=c("sampleIDs","species","life_stage","site","year","bd_test"), row.names = NULL)
 metadata <- read.delim('code/README_for_amphibian_skin_microbiome1.txt', sep = "\t", col.names=c("sampleIDs","species","life_stage","site","year","bd_test"), row.names = NULL)
 dim(metadata)
 metadata$sampleIDs
