@@ -82,8 +82,14 @@ taxa.gg <- addSpecies(taxa.gg, "C:/Users/Awnna/Desktop/ECL243/Samples/rdp_specie
 
 #and inspect
 taxa.print <- taxa
-rownames(taxa.print)
+rownames(taxa.print)<- NULL
 head(taxa.print)
+taxa.print[1,1:7]
+write.csv(taxa.print,"frogs.txt")
+names<- read.csv("frogs.txt", header =TRUE)
+colnames(names)
+names$name <- paste(names$Kingdom, names$Phylum, names$Class, names$Order, names$Family, names$Genus, names$Species)
+names$name
 
 #writing fasta file to feed into MSA for alignment
 library(tidyverse)
