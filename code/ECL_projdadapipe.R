@@ -85,8 +85,8 @@ taxa.print <- taxa
 rownames(taxa.print)<- NULL
 head(taxa.print)
 taxa.print[1,1:7]
-write.csv(taxa.print,"frogs.txt")
-names<- read.csv("frogs.txt", header =TRUE)
+write.csv(taxa.print,"output/frogs.txt")
+names<- read.csv("output/frogs.txt", header =TRUE)
 colnames(names)
 names$name <- paste(names$Kingdom, names$Phylum, names$Class, names$Order, names$Family, names$Genus, names$Species)
 names$name
@@ -100,11 +100,11 @@ library(seqinr)
 #seqs<-colnames(seqtab.nochim)
 #write.fasta(as.list(colnames(seqtab.nochim)), names = names, "seqtab_nochim.txt", open = "w", as.string = FALSE)
 #write.fasta(as.list(rownames(taxa)), names = taxa.print, "taxa.txt", open = "w", as.string = FALSE)
-write.fasta(as.list(rownames(taxa.gg)), names = names$name, "taxa_gg.txt", open = "w", as.string = FALSE)
+write.fasta(as.list(rownames(taxa)), names = names$name, "taxa.txt", open = "w", as.string = FALSE)
 
 #Align Sequences
 library(msa)
-seqs.fasta <- readDNAStringSet("taxa_gg.txt")
+seqs.fasta <- readDNAStringSet("taxa.txt")
 start_time <- Sys.time()
 seqs.aligned <- msa(seqs.fasta, method="ClustalOmega")
 end_time <- Sys.time()
