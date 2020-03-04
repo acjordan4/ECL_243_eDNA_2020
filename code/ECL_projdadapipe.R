@@ -142,6 +142,28 @@ ps <- merge_phyloseq(ps, dna) #add phylo tree here merge_phyloseq(ps,dna,tree)
 taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
 ps
 
+#Filter the taxa based on mito and chloro
+#taxa.filter <- remove_taxa(c("Mitochondria", "Chloroplast"), ps)
+
+dna <- Biostrings::DNAStringSet(taxa_names(ps))
+names(dna) <- taxa_names(ps)
+ps <- merge_phyloseq(ps, dna) #add phylo tree here merge_phyloseq(ps,dna,tree)
+taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
+ps
+
+ps <- subset_taxa(ps, Order!="Chloroplast" |Family !="Mitochondria" | is.na(Class))
+
+library("microbiome")
+top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:10]
+ps.top20 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
+ps.top20 <- prune_taxa(top20, ps.top20)
+#ps.top10 <- aggregate_taxa(ps, level= 'Family', top = 10)
+p <- plot_bar(ps.top20, x="species", fill="Family", facet_grid=~samdf$species)
+#p <- plot_bar(ps, fill = "Family", facet_grid=~samdf$species)
+p + geom_bar(aes(color=Family, fill=Family), stat="identity", position="stack")
+ggsave("p.pdf", height = 25 , width = 30)
+
+
 pdf("samples_families.pdf")
 plot_bar(ps, fill = "Phylum")
 dev.off()
