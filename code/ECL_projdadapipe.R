@@ -146,17 +146,24 @@ taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
 ps
 
 ps <- subset_taxa(ps, Order!="Chloroplast" |Family !="Mitochondria" | is.na(Class))
+ps<- subset_taxa(ps, !is.na(Phylum))
+low.reads<- which(sample_sums(ps)<9000)
+ps <- prune_samples(sample_sums(ps)>=9000, ps) #remove reads less than 9,000 
+test <- samdf[-low.reads,]
+
 
 library("microbiome")
-top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:10]
+top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:20]
 ps.top20 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
 ps.top20 <- prune_taxa(top20, ps.top20)
 #ps.top10 <- aggregate_taxa(ps, level= 'Family', top = 10)
-p <- plot_bar(ps.top20, x="species", fill="Family", facet_grid=~samdf$species)
+p <- plot_bar(ps.top20, x="bd_test", fill="Family", facet_grid=~test$frogspecies)
 #p <- plot_bar(ps, fill = "Family", facet_grid=~samdf$species)
 p + geom_bar(aes(color=Family, fill=Family), stat="identity", position="stack")
 ggsave("p.pdf", height = 25 , width = 30)
 
+test %>% group_by(frogspecies, bd_test) %>%
+  summarize(n = n())
 
 pdf("samples_families.pdf")
 plot_bar(ps, fill = "Phylum")
