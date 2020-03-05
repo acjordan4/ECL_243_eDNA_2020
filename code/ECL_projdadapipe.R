@@ -136,12 +136,6 @@ ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE),
                sample_data(samdf), 
                tax_table(taxa))
 
-dna <- Biostrings::DNAStringSet(taxa_names(ps))
-names(dna) <- taxa_names(ps)
-ps <- merge_phyloseq(ps, dna) #add phylo tree here merge_phyloseq(ps,dna,tree)
-taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
-ps
-
 #Filter the taxa based on mito and chloro
 #taxa.filter <- remove_taxa(c("Mitochondria", "Chloroplast"), ps)
 
