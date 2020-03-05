@@ -136,31 +136,43 @@ ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE),
                sample_data(samdf), 
                tax_table(taxa))
 
-#Filter the taxa based on mito and chloro
-#taxa.filter <- remove_taxa(c("Mitochondria", "Chloroplast"), ps)
+#dataframe checks
+ps
+ntaxa(ps)
+nsamples(ps)
+rank_names(ps)
+sample_variables(ps)
+taxa_names(ps)
+tax_table(ps)
+any(taxa_sums(ps) == 0)
+summarize_phyloseq(ps)
+hist(log10(taxa_sums(ps)))
 
+#Remove chloroplast and mitochondria
+GP.chl = subset_taxa(ps, Order != "Chloroplast"|Family !="Mitochondria")
+#Remove samples with less than 20 reads
+GP.chl = prune_samples(sample_sums(GP.chl)>=20, GP.chl)
+GP.chl
+
+#store DNA sequences of the ASVs in a reference slot of the phyloseq object 
+#DNA seqs accessed via refseq(ps)
 dna <- Biostrings::DNAStringSet(taxa_names(ps))
-names(dna) <- taxa_names(ps)
-ps <- merge_phyloseq(ps, dna) #add phylo tree here merge_phyloseq(ps,dna,tree)
+names(dna) <- taxa_names(GP.chl)
+ps <- merge_phyloseq(GP.chl, dna) #add phylo tree here merge_phyloseq(ps,dna,tree)
 taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
 ps
-
-ps <- subset_taxa(ps, Order!="Chloroplast" |Family !="Mitochondria" | is.na(Class))
-ps<- subset_taxa(ps, !is.na(Phylum))
-low.reads<- which(sample_sums(ps)<9000)
-ps <- prune_samples(sample_sums(ps)>=9000, ps) #remove reads less than 9,000 
-test <- samdf[-low.reads,]
+otu_table(ps)[1:2, 1:2]
 
 
-library("microbiome")
-top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:20]
+#create bar plot witht op 20 most abundant bacteria
+top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:10]
 ps.top20 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
 ps.top20 <- prune_taxa(top20, ps.top20)
-#ps.top10 <- aggregate_taxa(ps, level= 'Family', top = 10)
-p <- plot_bar(ps.top20, x="bd_test", fill="Family", facet_grid=~test$frogspecies)
-#p <- plot_bar(ps, fill = "Family", facet_grid=~samdf$species)
+p <- plot_bar(ps.top20, x="species", fill="Family", facet_grid=~samdf$species)
 p + geom_bar(aes(color=Family, fill=Family), stat="identity", position="stack")
 ggsave("p.pdf", height = 25 , width = 30)
+
+
 
 test %>% group_by(frogspecies, bd_test) %>%
   summarize(n = n())
