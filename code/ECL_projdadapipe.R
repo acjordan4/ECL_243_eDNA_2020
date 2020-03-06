@@ -94,12 +94,6 @@ names$name
 #writing fasta file to feed into MSA for alignment
 library(tidyverse)
 library(seqinr)
-
-#old code where names are a sequence of numbers
-#names <- seq(from = 0, to = length(seqtab.nochim))
-#seqs<-colnames(seqtab.nochim)
-#write.fasta(as.list(colnames(seqtab.nochim)), names = names, "seqtab_nochim.txt", open = "w", as.string = FALSE)
-#write.fasta(as.list(rownames(taxa)), names = taxa.print, "taxa.txt", open = "w", as.string = FALSE)
 write.fasta(as.list(rownames(taxa)), names = names$name, "taxa.txt", open = "w", as.string = FALSE)
 
 #Align Sequences
@@ -112,8 +106,7 @@ end_time - start_time
 seqs.aligned
 writeXStringSet(unmasked(seqs.aligned), file="seqs_aligned.fasta")
 
-#for this metadata function, I removed the other info in the readme file. will add to the github repository
-#metadata <- read.delim('~/ECL243/README_for_amphibian_skin_microbiome1.txt', sep = "\t", col.names=c("sampleIDs","species","life_stage","site","year","bd_test"), row.names = NULL)
+#for this metadata function, I removed the other info in the readme file
 metadata <- read.delim('code/README_for_amphibian_skin_microbiome1.txt', sep = "\t", col.names=c("sampleIDs","species","life_stage","site","year","bd_test"), row.names = NULL)
 dim(metadata)
 metadata$sampleIDs
@@ -132,6 +125,7 @@ bd_test <- metadata$bd_test
 samdf <- data.frame(Frog = frog, frogspecies = species, lifestage = lifestage, bd_test = bd_test)
 rownames(samdf) <- samples.out
 
+#generate a phyloseq object
 ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
                sample_data(samdf), 
                tax_table(taxa))
@@ -150,7 +144,7 @@ hist(log10(taxa_sums(ps)))
 #Unfiltered data has 5 singletons
 
 
-#Remove chloroplast and mitochondria
+#Remove chloroplast and mitochondria, does not work
 ps.1 <- subset_taxa(ps, Order != "Chloroplast"|Family !="Mitochondria")
 summarize_phyloseq(ps.1)
 #Remove samples with less than 9,000 reads
@@ -203,7 +197,6 @@ plot_richness(ps, x="bd_test", measures=c("Shannon", "Simpson"), color="Species"
 # Transform data to proportions as appropriate for Bray-Curtis distances
 ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
 ord.nmds.bray <- ordinate(ps.prop, method="NMDS", distance="bray")
-
 plot_ordination(ps.prop, ord.nmds.bray, color="Species", title="Bray NMDS")
 
 top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:20]
