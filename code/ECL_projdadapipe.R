@@ -147,28 +147,45 @@ tax_table(ps)
 any(taxa_sums(ps) == 0)
 summarize_phyloseq(ps)
 hist(log10(taxa_sums(ps)))
+#Unfiltered data has 5 singletons
+
 
 #Remove chloroplast and mitochondria
-GP.chl = subset_taxa(ps, Order != "Chloroplast"|Family !="Mitochondria")
-#Remove samples with less than 20 reads
-GP.chl = prune_samples(sample_sums(GP.chl)>=20, GP.chl)
-GP.chl
+ps.1 <- subset_taxa(ps, Order != "Chloroplast"|Family !="Mitochondria")
+summarize_phyloseq(ps.1)
+#Remove samples with less than 9,000 reads
+ps.2 = prune_samples(sample_sums(ps.1)>=9000, ps.1)
+summarize_phyloseq(ps.2)
+#Remove Singletons
+ps.3 <- prune_taxa(taxa_sums(ps.2) > 1, ps.2)
+summarize_phyloseq(ps.3)
+
 
 #store DNA sequences of the ASVs in a reference slot of the phyloseq object 
 #DNA seqs accessed via refseq(ps)
-dna <- Biostrings::DNAStringSet(taxa_names(ps))
-names(dna) <- taxa_names(GP.chl)
-ps <- merge_phyloseq(GP.chl, dna) #add phylo tree here merge_phyloseq(ps,dna,tree)
+dna <- Biostrings::DNAStringSet(taxa_names(ps.3))
+names(dna) <- taxa_names(ps.3)
+ps <- merge_phyloseq(ps.3, dna) #add phylo tree here merge_phyloseq(ps,dna,tree)
 taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
 ps
 otu_table(ps)[1:2, 1:2]
 
+#Update Samdf table to reflect filtered phyloseq table
+samdf_filter <- sample_data(ps)
+
+sample_data(ps) %>% 
+  group_by(frogspecies, bd_test) %>% 
+  summarise(n=n())
+
+#Try subsetting taxa now
+ps.4 <- subset_taxa(ps, Family !="Mitochondria")
+
 
 #create bar plot witht op 20 most abundant bacteria
-top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:10]
-ps.top20 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
+top20 <- names(sort(taxa_sums(ps.4), decreasing=TRUE))[1:20]
+ps.top20 <- transform_sample_counts(ps.4, function(OTU) OTU/sum(OTU))
 ps.top20 <- prune_taxa(top20, ps.top20)
-p <- plot_bar(ps.top20, x="species", fill="Family", facet_grid=~samdf$species)
+p <- plot_bar(ps.top20, x="bd_test", fill="Family", facet_grid=~samdf_filter$frogspecies)
 p + geom_bar(aes(color=Family, fill=Family), stat="identity", position="stack")
 ggsave("p.pdf", height = 25 , width = 30)
 
