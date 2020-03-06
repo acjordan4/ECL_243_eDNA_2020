@@ -175,9 +175,17 @@ sample_data(ps) %>%
 ps.4 <- subset_taxa(ps, Family !="Mitochondria")
 
 
+#Standardize abundances to the median sequencing depth
+total = median(sample_sums(ps.4))
+standf = function(x, t=total) round(t * (x/sum(x)))
+gps = transform_sample_counts(ps.4, standf)
+gpsf = filter_taxa(gps, function(x) sd(x)/mean(x) > 3.0, TRUE)
+
+
 #create bar plot witht op 20 most abundant bacteria
-top20 <- names(sort(taxa_sums(ps.4), decreasing=TRUE))[1:20]
-ps.top20 <- transform_sample_counts(ps.4, function(OTU) OTU/sum(OTU))
+ps4_family <- tax_glom(gpsf, taxrank="Family") #Combines all the sequences that are in the same family together
+top20 <- names(sort(taxa_sums(ps4_family), decreasing=TRUE))[1:20]
+ps.top20 <- transform_sample_counts(gpsf, function(OTU) OTU/sum(OTU))
 ps.top20 <- prune_taxa(top20, ps.top20)
 p <- plot_bar(ps.top20, x="bd_test", fill="Family", facet_grid=~samdf_filter$frogspecies)
 p + geom_bar(aes(color=Family, fill=Family), stat="identity", position="stack")
