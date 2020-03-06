@@ -143,9 +143,12 @@ summarize_phyloseq(ps)
 hist(log10(taxa_sums(ps)))
 #Unfiltered data has 5 singletons
 
+###relative abundance
+psr <- transform_sample_counts(ps, function(x) x / sum(x))
+psfr <- filter_taxa(ps, function(x) mean (x) > 1e-5, TRUE)
 
 #Remove chloroplast and mitochondria, does not work
-ps.1 <- subset_taxa(ps, Order != "Chloroplast"|Family !="Mitochondria")
+ps.1 <- subset_taxa(psfr, Order != "Chloroplast"|Family !="Mitochondria")
 summarize_phyloseq(ps.1)
 #Remove samples with less than 9,000 reads
 ps.2 = prune_samples(sample_sums(ps.1)>=9000, ps.1)
@@ -176,16 +179,21 @@ ps.4 <- subset_taxa(ps, Family !="Mitochondria")
 
 
 #Standardize abundances to the median sequencing depth
+
+
+  
 total = median(sample_sums(ps.4))
 standf = function(x, t=total) round(t * (x/sum(x)))
 gps = transform_sample_counts(ps.4, standf)
 gpsf = filter_taxa(gps, function(x) sd(x)/mean(x) > 3.0, TRUE)
 
 
+
+
 #create bar plot witht op 20 most abundant bacteria
-ps4_family <- tax_glom(gpsf, taxrank="Family") #Combines all the sequences that are in the same family together
+ps4_family <- tax_glom(ps.4, taxrank="Family") #Combines all the sequences that are in the same family together
 top20 <- names(sort(taxa_sums(ps4_family), decreasing=TRUE))[1:20]
-ps.top20 <- transform_sample_counts(gpsf, function(OTU) OTU/sum(OTU))
+ps.top20 <- transform_sample_counts(ps.4, function(OTU) OTU/sum(OTU))
 ps.top20 <- prune_taxa(top20, ps.top20)
 p <- plot_bar(ps.top20, x="bd_test", fill="Family", facet_grid=~samdf_filter$frogspecies)
 p + geom_bar(aes(color=Family, fill=Family), stat="identity", position="stack")
@@ -200,17 +208,25 @@ pdf("samples_families.pdf")
 plot_bar(ps, fill = "Phylum")
 dev.off()
 
-plot_richness(ps, x="bd_test", measures=c("Shannon", "Simpson"), color="Species")
+shannon.diversity <- plot_richness(ps.4, x="bd_test", measures=c("Shannon", "Simpson"), color="frogspecies")
+
 
 # Transform data to proportions as appropriate for Bray-Curtis distances
-ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
+ps.prop <- transform_sample_counts(ps.4, function(otu) otu/sum(otu))
 ord.nmds.bray <- ordinate(ps.prop, method="NMDS", distance="bray")
-plot_ordination(ps.prop, ord.nmds.bray, color="Species", title="Bray NMDS")
+plot_ordination(ps.prop, ord.nmds.bray, color="frogspecies", title="Bray NMDS")
 
 top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:20]
 ps.top20 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
 ps.top20 <- prune_taxa(top20, ps.top20)
-plot_bar(ps.top20, x="Species:bd_test", fill="Family")
+plot_bar(melted, x="Species:bd_test", fill="Family")
 
-#heatmap function for abundance of each organism by phylum from https://joey711.github.io/phyloseq/import-data.html
-#plot_heatmap(ps, taxa.label="Phylum")
+##Could try plotting this melted data?
+melted <- psmelt(ps.top20)
+write.csv(melted, "output/melted_phyloseqdata.csv")
+
+#heatmap function for abundance of each organism by order from https://joey711.github.io/phyloseq/import-data.html
+
+ps.heatmap <- subset_taxa(ps, Order=="Actinomycetales" | Order == "Bacillales" | Order == "Burkholderiales" | Order == "Caulobacterales" | Order == "Enterobacteriales" | Order == "Flavobacteriales" | Order == "Neisseriales" | Order == "Pseudomonadales" | Order == "Rhizobiales" | Order == "Sphingobacteriales" | Order == "Sphingomondales" | Order == "Xanthomondales" )
+
+plot_heatmap(ps.heatmap, taxa.label="Order")
